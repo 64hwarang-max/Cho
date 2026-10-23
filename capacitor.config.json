@@ -1,0 +1,6 @@
+{
+  "appId": "kr.overtimecalc.app",
+  "appName": "초과근무 계산기",
+  "webDir": "www",
+  "android": { "allowMixedContent": false }
+}
