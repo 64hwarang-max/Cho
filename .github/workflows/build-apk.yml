@@ -31,6 +31,9 @@ jobs:
       - name: 안드로이드 프로젝트 만들기
         run: npx cap add android
 
+      - name: 앱 아이콘·스플래시 만들기
+        run: npx capacitor-assets generate --android
+
       - name: 웹 파일 동기화
         run: npx cap sync android
 

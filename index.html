@@ -1,5 +1,6 @@
 <title>초과근무수당 계산기</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2714%27 fill=%27%232E5E47%27/%3E%3Ccircle cx=%2730%27 cy=%2732%27 r=%2717%27 fill=%27none%27 stroke=%27%23F2F4F0%27 stroke-width=%275%27/%3E%3Cpath d=%27M30 21v11l7 4%27 fill=%27none%27 stroke=%27%23F2F4F0%27 stroke-width=%274%27 stroke-linecap=%27round%27/%3E%3Ccircle cx=%2747%27 cy=%2747%27 r=%278%27 fill=%27%23F0B25A%27/%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
 /* Layout: one narrow column. Rank + rules on top, result card next, month calendar with a day editor below. */
@@ -100,8 +101,8 @@ table.gt td:last-child{text-align:right;font-family:var(--mono);font-variant-num
 details summary svg{width:18px;height:18px;margin-right:8px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .secs{display:flex;flex-direction:column;gap:18px}
 .sh{display:flex;align-items:center;gap:8px;margin:0 0 10px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-.tg{font:inherit;letter-spacing:inherit;color:inherit;background:none;border:0;padding:6px 0;flex:1;display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left;cursor:pointer;min-height:38px}
-.chev{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none;transition:transform .15s}
+.tg{font:inherit;letter-spacing:inherit;color:inherit;background:none;border:0;padding:6px 0;flex:1;display:flex;align-items:center;justify-content:flex-start;gap:6px;text-align:left;cursor:pointer;min-height:38px}
+.chev{margin-left:auto;width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none;transition:transform .15s}
 .closed .chev{transform:rotate(-90deg)}
 .closed .sh{margin-bottom:0}
 .closed .sb{display:none}
@@ -110,6 +111,19 @@ section.dragging{outline:2px solid var(--accent);box-shadow:0 10px 28px rgba(0,0
 body.dragmode,body.dragmode *{-webkit-user-select:none;user-select:none;cursor:grabbing}
 .day.off{border-style:dashed}
 .day .h.off{color:var(--warn);font-family:var(--font);font-weight:500;font-size:.64rem}
+.banner[hidden]{display:none}
+table.bd,table.gt{color:inherit;font-size:.88rem}
+table.bd td{color:inherit}
+/* polish: compact 3-up numeric settings, calmer result card */
+.grid3.num{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.grid3.num .unit span{display:none}
+.grid3.num input{padding-inline:8px;text-align:right}
+.grid3.num .chips{gap:4px}
+.grid3.num .chip{padding:3px 8px;font-size:.76rem;min-height:30px}
+.grid3.num .field>label{white-space:nowrap}
+.result .big{font-size:2.7rem;letter-spacing:-.02em}
+.result .big small{opacity:.75}
+.result h2{opacity:.85}
 </style>
 
 <div class="wrap">
@@ -127,13 +141,13 @@ body.dragmode,body.dragmode *{-webkit-user-select:none;user-select:none;cursor:g
     <h2 id="h-rank">계급·급수와 단가</h2>
     <span class="seg" role="group" aria-label="구분" style="margin-bottom:10px"><button type="button" id="kMil" aria-pressed="true">군인</button><button type="button" id="kCiv" aria-pressed="false">공무원</button><button type="button" id="kEtc" aria-pressed="false">기타</button></span>
     <div class="chips" id="rankChips" role="group" aria-label="계급 선택"></div>
-    <div class="grid3" style="margin-top:14px">
-      <div class="field"><label for="rate">시간당 단가</label><div class="unit"><input id="rate" type="number" inputmode="numeric" min="0" step="1"><span>원</span></div></div>
-      <div class="field"><label for="base">기본공제시간</label><div class="unit"><input id="base" type="number" inputmode="numeric" min="0" step="1"><span>시간</span></div>
+    <div class="field" style="margin-top:14px"><label for="rate">시간당 단가</label><div class="unit"><input id="rate" type="number" inputmode="numeric" min="0" step="1"><span>원</span></div></div>
+    <div class="grid3 num" style="margin-top:12px">
+      <div class="field"><label for="base">기본공제(시간)</label><div class="unit"><input id="base" type="number" inputmode="numeric" min="0" step="1"><span>시간</span></div>
         <div class="chips" id="baseChips"></div></div>
-      <div class="field"><label for="max">최대인정시간</label><div class="unit"><input id="max" type="number" inputmode="numeric" min="0" step="1"><span>시간</span></div>
+      <div class="field"><label for="max">최대인정(시간)</label><div class="unit"><input id="max" type="number" inputmode="numeric" min="0" step="1"><span>시간</span></div>
         <div class="chips" id="maxChips"></div></div>
-      <div class="field"><label for="fixed">정액 가산시간</label><div class="unit"><input id="fixed" type="number" inputmode="numeric" min="0" step="1"><span>시간</span></div></div>
+      <div class="field"><label for="fixed">정액가산(시간)</label><div class="unit"><input id="fixed" type="number" inputmode="numeric" min="0" step="1"><span>시간</span></div></div>
     </div>
     <label class="chk" for="dedChk" style="margin-top:10px"><input type="checkbox" id="dedChk"> 평일 하루 합계에서 1시간 공제</label>
     <div class="bar">
@@ -315,7 +329,7 @@ body.dragmode,body.dragmode *{-webkit-user-select:none;user-select:none;cursor:g
   function chips(id,vals,field){
     var box=$(id);box.innerHTML='';var r=cur();
     vals.forEach(function(v){
-      var b=document.createElement('button');b.type='button';b.className='chip';b.textContent=v+'시간';
+      var b=document.createElement('button');b.type='button';b.className='chip';b.textContent=v;
       b.setAttribute('aria-pressed',r[field]===v?'true':'false');
       b.onclick=function(){r[field]=v;$(field).value=v;save();renderChips();renderResult()};box.appendChild(b);
     });
