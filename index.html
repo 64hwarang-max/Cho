@@ -210,6 +210,21 @@ table.bd td{color:inherit}
     </details>
   </section>
 
+  <section id="sec-backup" aria-labelledby="h-backup">
+    <h2 id="h-backup">백업·복원</h2>
+    <p class="note" style="margin-top:0">기록은 이 기기의 이 앱 안에만 저장됩니다. 앱을 지우거나 기기를 바꾸기 전에 백업하세요.</p>
+    <div class="bar" style="justify-content:flex-start;margin-top:10px">
+      <button class="btn primary" id="bkSave" type="button">백업 파일 저장</button>
+      <button class="btn" id="bkCopy" type="button">백업 내용 복사</button>
+      <label class="btn" for="bkFile" style="display:inline-flex;align-items:center;cursor:pointer">백업 파일 불러오기</label>
+      <input id="bkFile" type="file" accept=".json,.txt,application/json,text/plain" hidden>
+    </div>
+    <details style="margin-top:10px"><summary>복사한 내용 붙여넣어 복원</summary>
+      <textarea id="bkText" rows="4" placeholder="복사해 둔 백업 내용을 붙여넣으세요" style="width:100%;margin-top:8px;font:inherit;font-family:var(--mono);font-size:.8rem;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:8px"></textarea>
+      <button class="btn" id="bkPaste" type="button" style="margin-top:8px">내용 확인</button>
+    </details>
+    <div class="banner" id="bkMsg" hidden style="margin:12px 0 0"><span id="bkMsgT"></span><button type="button" id="bkGo" hidden>이 백업으로 교체</button></div>
+  </section>
   </div>
 
   <p class="note">각 항목의 제목을 누르면 접고 펼 수 있고, 길게 누른 채 끌면 순서를 옮길 수 있습니다.</p>
@@ -558,6 +573,49 @@ table.bd td{color:inherit}
   };
   $('nName').oninput=function(){$('nName').setCustomValidity('')};
   $('clearEx').onclick=function(){S.rows=[];S.example=false;save();$('exBanner').hidden=true;renderCal();renderEditor();renderResult()};
+
+  /* ---- 백업·복원 ---- */
+  var pending=null;
+  function bkMsg(t,go){$('bkMsg').hidden=false;$('bkMsgT').textContent=t;$('bkGo').hidden=!go}
+  function bkJson(){return JSON.stringify({app:'overtime-calc',v:1,at:new Date().toISOString(),data:S},null,1)}
+  function bkName(){var d=new Date();return 'overtime-backup-'+d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'.json'}
+  function parseBk(txt){
+    var o;try{o=JSON.parse(txt)}catch(e){bkMsg('백업 파일 형식이 아닙니다.');return}
+    var d=o&&o.app==='overtime-calc'&&o.data;
+    if(!d||!Array.isArray(d.ranks)||!Array.isArray(d.rows)){bkMsg('이 앱의 백업이 아닙니다.');return}
+    pending=d;
+    bkMsg('근무 기록 '+d.rows.length+'건, 계급·급수 '+d.ranks.length+'개'+(o.at?' ('+o.at.slice(0,10)+' 백업)':'')+'. 현재 기록은 이 백업으로 대체됩니다.',true);
+  }
+  $('bkSave').onclick=function(){
+    var name=bkName(),json=bkJson(),C=window.Capacitor,P=C&&C.Plugins;
+    if(C&&C.isNativePlatform&&C.isNativePlatform()&&P&&P.Filesystem&&P.Share){
+      P.Filesystem.writeFile({path:name,data:json,directory:'CACHE',encoding:'utf8'}).then(function(r){
+        return P.Share.share({title:'초과근무 계산기 백업',url:r.uri});
+      }).then(function(){bkMsg('공유 창에서 저장할 위치를 고르세요. 파일 이름: '+name)},function(e){bkMsg('저장하지 못했습니다. "백업 내용 복사"를 이용하세요.')});
+      return;
+    }
+    try{
+      var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([json],{type:'application/json'}));a.download=name;
+      document.body.appendChild(a);a.click();a.remove();bkMsg('백업 파일을 저장했습니다: '+name);
+    }catch(e){bkMsg('저장하지 못했습니다. "백업 내용 복사"를 이용하세요.')}
+  };
+  $('bkCopy').onclick=function(){
+    var json=bkJson();
+    function fallback(){var t=$('bkText');t.value=json;t.closest('details').open=true;t.focus();t.select();bkMsg('아래 칸의 내용을 길게 눌러 복사해 메모 등에 붙여 두세요.')}
+    if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(json).then(function(){bkMsg('백업 내용을 복사했습니다. 메모나 메신저에 붙여 두세요.')},fallback);
+    else fallback();
+  };
+  $('bkFile').onchange=function(){
+    var f=$('bkFile').files[0];if(!f)return;
+    var r=new FileReader();r.onload=function(){parseBk(String(r.result))};r.onerror=function(){bkMsg('파일을 읽지 못했습니다.')};r.readAsText(f);
+    $('bkFile').value='';
+  };
+  $('bkPaste').onclick=function(){parseBk($('bkText').value.trim())};
+  $('bkGo').onclick=function(){
+    if(!pending)return;
+    try{localStorage.setItem(KEY,JSON.stringify(pending))}catch(e){bkMsg('이 환경에서는 저장할 수 없어 복원하지 못했습니다.');return}
+    location.reload();
+  };
 
   /* ---- 항목 접기 / 길게 눌러 순서 이동 ---- */
   function setupSections(){
